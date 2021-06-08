@@ -1,0 +1,6 @@
+bot.log
+node_modules/
+.password
+bot.db
+package-lock.json
+output/
