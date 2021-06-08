@@ -76,23 +76,24 @@ async function parse(from,msg,isop) {
         IRC.notice_chan(from,"Sorry, you can only chit one chit per "+constants.CHIT_TIME_BETWEEN+" minutes",constants.IRC_CHAN);
       else if(msg.length<1)
         IRC.notice_chan(from,"Syntax error.  Try 'help'",constants.IRC_CHAN);
-
-      msg=msg.join(' ');
-      if(striptags(msg)!==msg)
-        IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
-      else {
-        if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==msg)
+      else if(1) {
+        msg=msg.join(' ');
+        if(striptags(msg)!==msg)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
         else {
-          result = await Database.chit(from,msg);
-          if(result) {
-            writeChit(from,result);
-            writeChits(from);
-            IRC.say(constants.IRC_CHAN,constants.BOLD+'['+result+'] Chit posted by '+from+constants.BOLD+ " " + "https://chit.freenode.net/u/"+from+"/"+result+".html");
-            IRC.notice_chan(from,constants.BOLD+'['+result+'] '+IRC.colour.red(msg)+' '+IRC.colour.grey('['+from+']')+constants.BOLD, constants.IRC_CHAN);
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==msg)
+            IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
+          else {
+            result = await Database.chit(from,msg);
+            if(result) {
+              writeChit(from,result);
+              writeChits(from);
+              IRC.say(constants.IRC_CHAN,constants.BOLD+'['+result+'] Chit posted by '+from+constants.BOLD+ " " + "https://chit.freenode.net/u/"+from.toLowerCase().replace("\\","~")+"/"+result+".html");
+              IRC.notice_chan(from,constants.BOLD+'['+result+'] '+IRC.colour.red(msg)+' '+IRC.colour.grey('['+from+']')+constants.BOLD, constants.IRC_CHAN);
+            }
+            else
+                IRC.notice_chan(from,"An unknown error has occurred.",constants.IRC_CHAN);
           }
-          else
-            IRC.notice_chan(from,"An unknown error has occurred.",constants.IRC_CHAN);
         }
       }
       break;
@@ -121,7 +122,7 @@ async function parse(from,msg,isop) {
                 let chit_data = await Database.findChit(Math.round(msg[1]));
                 writeChit(chit_data.NICK,Math.round(msg[1]));
                 writeChits(chit_data.NICK);
-                IRC.say(constants.IRC_CHAN,constants.BOLD+'['+Math.round(msg[1])+'] Vote recorded from '+from+" for https://chit.freenode.net/u/"+chit_data.NICK+"/"+Math.round(msg[1])+".html"+constants.BOLD);
+                IRC.say(constants.IRC_CHAN,constants.BOLD+'['+Math.round(msg[1])+'] Vote recorded from '+from+" for https://chit.freenode.net/u/"+chit_data.NICK.toLowerCase().replace("\\","~")+"/"+Math.round(msg[1])+".html"+constants.BOLD);
                 break;
             }
             break;
@@ -175,11 +176,11 @@ async function writeChit(nick,_chit) {
     output+='<!--#include virtual="/footer_user.html"-->';
 
 
-    if(!fs.existsSync(constants.HTML_INDEX+"/"+nick.toLowerCase()))
-      fs.mkdirSync(constants.HTML_INDEX+"/"+nick.toLowerCase());
+    if(!fs.existsSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")))
+      fs.mkdirSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~"));
 
-    fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/"+_chit+".html",output);
-    fs.chmodSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/"+_chit+".html",0755);
+    fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/"+_chit+".html",output);
+    fs.chmodSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/"+_chit+".html",0755);
   }
 }
 async function writeChits(nick) {
@@ -199,13 +200,13 @@ async function writeChits(nick) {
   }
 
   output+='<!--#include virtual="/footer_user.html"-->';
-  if(!fs.existsSync(constants.HTML_INDEX+"/"+nick.toLowerCase()))
-    fs.mkdirSync(constants.HTML_INDEX+"/"+nick.toLowerCase());
+  if(!fs.existsSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")))
+    fs.mkdirSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~"));
 
-  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/index.html",output);
-  fs.chmodSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/index.html",0755);
-  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/index.json",JSON.stringify(chits));
-  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase()+"/rss.xml",rss.createRSS(chits,nick));
+  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/index.html",output);
+  fs.chmodSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/index.html",0755);
+  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/index.json",JSON.stringify(chits));
+  fs.writeFileSync(constants.HTML_INDEX+"/"+nick.toLowerCase().replace("\\","~")+"/rss.xml",rss.createRSS(chits,nick));
 }
 function timestampToDate(tm) {
   var a = new Date(tm * 1000);
