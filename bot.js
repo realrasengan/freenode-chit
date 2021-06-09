@@ -75,7 +75,7 @@ async function parse(from,msg,isop) {
       break;
     case 'chit':
       msg.shift();
-      if(!await Database.userCanChit(from)  && from.toLowerCase()!==constants.BBS)
+      if(!await Database.userCanChit(from)  && from.toLowerCase()!==constants.BBS.toLowerCase())
         IRC.notice_chan(from,"Sorry, you can only chit one chit per "+constants.CHIT_TIME_BETWEEN+" minutes",constants.IRC_CHAN);
       else if(msg.length<1)
         IRC.notice_chan(from,"Syntax error.  Try 'help'",constants.IRC_CHAN);
@@ -84,7 +84,7 @@ async function parse(from,msg,isop) {
         if(striptags(msg)!==msg)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
         else {
-          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==msg)
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==msg)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
           else {
             result = await Database.chit(from,msg);
@@ -93,6 +93,10 @@ async function parse(from,msg,isop) {
               writeChits(from);
               IRC.say(constants.IRC_CHAN,constants.BOLD+'['+result+'] Chit posted by '+from+constants.BOLD+ " " + "https://chit.freenode.net/u/"+from.toLowerCase().replace("\\","~")+"/"+result+".html");
               IRC.notice_chan(from,constants.BOLD+'['+result+'] '+IRC.colour.red(msg)+' '+IRC.colour.grey('['+from+']')+constants.BOLD, constants.IRC_CHAN);
+              if(from.toLowerCase()===constants.BBS.toLowerCase()) {
+                _msg=msg.split(" ");
+                IRC.notice(from,result + " " + from + " " + _msg[0]);
+              }
             }
             else
                 IRC.notice_chan(from,"An unknown error has occurred.",constants.IRC_CHAN);
@@ -117,7 +121,7 @@ async function parse(from,msg,isop) {
         if(striptags(msg)!==msg)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
         else {
-          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==msg)
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==msg)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
           else {
             result = await Database.reply(from,msg,parent);
