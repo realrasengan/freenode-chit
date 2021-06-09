@@ -84,7 +84,7 @@ async function parse(from,msg,isop) {
         if(striptags(msg)!==msg)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
         else {
-          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==msg)
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\}\=\& ]/g,"")!==msg)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
           else {
             result = await Database.chit(from,msg);
@@ -121,7 +121,7 @@ async function parse(from,msg,isop) {
         if(striptags(msg)!==msg)
           IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
         else {
-          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\} ]/g,"")!==msg)
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\;\[\]\{\}\=\& ]/g,"")!==msg)
             IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
           else {
             result = await Database.reply(from,msg,parent);
