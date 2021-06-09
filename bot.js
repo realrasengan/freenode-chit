@@ -57,6 +57,9 @@ async function parse(from,msg,isop) {
           case 'chit':
             IRC.notice_chan(from,Help.chit,constants.IRC_CHAN);
             break;
+          case 'reply':
+            IRC.notice_chan(from,Help.reply,constants.IRC_CHAN);
+            break;
           case 'vote':
             IRC.notice_chan(from,Help.vote,constants.IRC_CHAN);
             break;
@@ -97,6 +100,40 @@ async function parse(from,msg,isop) {
         }
       }
       break;
+    case 'reply':
+      let parent = msg[1];
+      msg.shift();
+      msg.shift();
+      _parent = await Database.findChit(parent);
+      if(!_parent) {
+        IRC.notice_chan(from,"Sorry, the parent post does not exist.",constants.IRC_CHAN);
+      }
+      else if(!await Database.userCanChit(from))
+        IRC.notice_chan(from,"Sorry, you can only chit one chit per "+constants.CHIT_TIME_BETWEEN+" minutes",constants.IRC_CHAN);
+      else if(msg.length<1)
+        IRC.notice_chan(from,"Syntax error.  Try 'help'",constants.IRC_CHAN);
+      else if(1) {
+        msg=msg.join(' ');
+        if(striptags(msg)!==msg)
+          IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
+        else {
+          if(striptags(msg)!==msg||msg.replace(/[^a-zA-Z0-9\,\-\.\'\"\?\!\%\$\#\@\(\)\*\+\~\\\/\:\; ]/g,"")!==msg)
+            IRC.notice_chan(from,"Sorry, but these characters are not allowed in a chit.",constants.IRC_CHAN);
+          else {
+            result = await Database.reply(from,msg,parent);
+            if(result) {
+              await writeChit(_parent.NICK,parent);
+              await writeChit(from,result);
+              await writeChits(from);
+              IRC.say(constants.IRC_CHAN,constants.BOLD+'['+result+'] Reply to ['+Math.round(parent)+'] posted by '+from+constants.BOLD+ " " + "https://chit.freenode.net/u/"+from.toLowerCase().replace("\\","~")+"/"+result+".html");
+              IRC.notice_chan(from,constants.BOLD+'['+result+'] Reply to ['+Math.round(parent)+'] '+IRC.colour.red(msg)+' '+IRC.colour.grey('['+from+']')+constants.BOLD, constants.IRC_CHAN);
+            }
+            else
+                IRC.notice_chan(from,"An unknown error has occurred or can't find parent.",constants.IRC_CHAN);
+          }
+        }
+      }
+      break;
     case 'vote':
       if(msg.length<2)
         IRC.notice_chan(from,"Syntax error.  Try 'help'",constants.IRC_CHAN);
@@ -120,8 +157,8 @@ async function parse(from,msg,isop) {
                 break;
              case 1:
                 let chit_data = await Database.findChit(Math.round(msg[1]));
-                writeChit(chit_data.NICK,Math.round(msg[1]));
-                writeChits(chit_data.NICK);
+                await writeChit(chit_data.NICK,Math.round(msg[1]));
+                await writeChits(chit_data.NICK);
                 IRC.say(constants.IRC_CHAN,constants.BOLD+'['+Math.round(msg[1])+'] Vote recorded from '+from+" for https://chit.freenode.net/u/"+chit_data.NICK.toLowerCase().replace("\\","~")+"/"+Math.round(msg[1])+".html"+constants.BOLD);
                 break;
             }
@@ -136,15 +173,17 @@ async function parse(from,msg,isop) {
         result = await Database.findChit(msg[1]);
         if(!result)
           IRC.notice_chan(from,"That chit does not exist",constants.IRC_CHAN);
-        else if(result.NICK.toLowerCase()===from.toLowerCase() && !isop) {
+        else if((result.NICK.toLowerCase()===from.toLowerCase() && !isop) || isop) {
           await Database.delChit(msg[1]);
           IRC.notice_chan(from,"Chit has been deleted.",constants.IRC_CHAN);
-          IRC.say(constants.IRC_CHAN,"Chit ["+msg[1]+"] has been deleted by the original chitter.");
-        }
-        else if(isop) {
-          await Database.delChit(msg[1]);
-          IRC.notice_chan(from,"Chit has been deleted.",constants.IRC_CHAN);
-          IRC.say(constants.IRC_CHAN,"Chit ["+msg[1]+"] has been deleted.");
+          IRC.say(constants.IRC_CHAN,"Chit ["+msg[1]+"] has been deleted"+(!isop?" by the original chitter.":"."));
+          fs.unlinkSync(constants.HTML_INDEX+"/"+result.NICK.toLowerCase().replace("\\","~")+"/"+result.CID+".html");
+          writeChits(result.NICK);
+          if(result.PARENT!==null && result.PARENT!=='' && result.PARENT!==0) {
+            let parent = await Database.findChit(result.PARENT);
+            if(parent)
+              writeChit(parent.NICK,parent.CID);
+          }
         }
         else {
           IRC.notice_chan(from,"You do not have permission to delete that chit.",constants.IRC_CHAN);
@@ -167,11 +206,36 @@ async function writeChit(nick,_chit) {
     output+=nick+" - "+timestampToDate(chit.TIMESTAMP);
     output+='<!--#include virtual="/head_user_2.html"-->';
     output+='<div class="single_chit">';
+    if(chit.PARENT!==null && chit.PARENT!=='' && chit.PARENT!==0) {
+      let parent = await Database.findChit(chit.PARENT);
+      if(parent) {
+        output+='<span class="single_chit_reply">In reply to <a href="https://chit.freenode.net/u/'
+              +parent.NICK.toLowerCase().replace("\\","~")
+              +'/'
+              +chit.PARENT
+              +'.html">'
+              +parent.NICK.toLowerCase()+' '+chit.PARENT+'</a></span>';
+      }
+    }
     output+='<span class="single_chit_timestamp">'+timestampToDate(chit.TIMESTAMP)+'</span>';
     output+='<span class="single_chit_author">'+nick.toLowerCase()+'</span>';
     output+='<span class="single_chit_text">'+chit.CHIT+'</span>';
     output+='<span class="single_chit_votes">'+votes+'</span>';
     output+='</div>';
+    let result = await Database.getReplies(chit.CID);
+
+    if(result && result.length>0) {
+      for(x=0;x<result.length;x++) {
+        let votes=await Database.countVotes(result[x].CID);
+        output+='<a class="chit_link" href="'+result[x].CID+'.html"><div class="single_reply">';
+        output+='<span class="single_reply_timestamp">'+timestampToDate(result[x].TIMESTAMP)+'</span>';
+        output+='<span class="single_reply_author">'+nick.toLowerCase()+'</span>';
+        output+='<span class="single_reply_text">'+result[x].CHIT+'</span>';
+        output+='<span class="single_reply_votes">'+votes+'</span>';
+        output+='</div></a>';
+
+      }
+    }
 
     output+='<!--#include virtual="/footer_user.html"-->';
 
@@ -191,6 +255,16 @@ async function writeChits(nick) {
   output+='<!--#include virtual="/head_user_2.html"-->';
   for(x=0;x<chits.length;x++) {
     let votes=await Database.countVotes(chits[x].CID);
+    if(chits[x].PARENT!==null && chits[x].PARENT!=='' && chits[x].PARENT!==0) {
+      let parent = await Database.findChit(chits[x].PARENT);
+      if(parent)
+        output+='<span class="single_chit_reply_main">In reply to <a href="https://chit.freenode.net/u/'
+              +parent.NICK.toLowerCase().replace("\\","~")
+              +'/'
+              +chits[x].PARENT
+              +'.html">'+parent.NICK.toLowerCase()+' '+chits[x].PARENT+'</a></span>';
+      delete parent;
+    }
     output+='<a class="chit_link" href="'+chits[x].CID+'.html"><div class="single_chit">';
     output+='<span class="single_chit_timestamp">'+timestampToDate(chits[x].TIMESTAMP)+'</span>';
     output+='<span class="single_chit_author">'+nick.toLowerCase()+'</span>';

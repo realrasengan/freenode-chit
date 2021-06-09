@@ -12,7 +12,8 @@ if(!fs.existsSync('./bot.db')) {
                 CHIT TEXT,
                 NICK CHAR(32),
                 TIMESTAMP INTEGER,
-                ISDELETED INTEGER
+                ISDELETED INTEGER,
+                PARENT INTEGER
               );`);
       db.run(`CREATE TABLE VOTES(
                 VID INTEGER PRIMARY KEY AUTOINCREMENT,
