@@ -220,9 +220,11 @@ async function writeChit(nick,_chit) {
     output+='<span class="single_chit_timestamp">'+timestampToDate(chit.TIMESTAMP)+'</span>';
     output+='<span class="single_chit_author">'+nick.toLowerCase()+'</span>';
     output+='<span class="single_chit_text">'+chit.CHIT+'</span>';
+
     output+='<span class="single_chit_votes">'+votes+'</span>';
-    output+='</div>';
     let result = await Database.getReplies(chit.CID);
+    output+='<span class="single_chit_replies">'+result.length+'</span>';
+    output+='</div>';
 
     if(result && result.length>0) {
       for(x=0;x<result.length;x++) {
@@ -235,6 +237,8 @@ async function writeChit(nick,_chit) {
         output+='<span class="single_reply_author">'+result[x].NICK.toLowerCase()+'</span>';
         output+='<span class="single_reply_text">'+result[x].CHIT+'</span>';
         output+='<span class="single_reply_votes">'+votes+'</span>';
+        let replies = await Database.getReplies(result[x].CID);
+        output+='<span class="single_reply_replies">'+replies.length+'</span>';
         output+='</div></a>';
 
       }
@@ -273,6 +277,8 @@ async function writeChits(nick) {
     output+='<span class="single_chit_author">'+nick.toLowerCase()+'</span>';
     output+='<span class="single_chit_text">'+chits[x].CHIT+'</span>';
     output+='<span class="single_chit_votes">'+votes+'</span>';
+    let replies = await Database.getReplies(chits[x].CID);
+    output+='<span class="single_chit_replies">'+replies.length+'</span>';
     output+='</div></a>';
   }
 
