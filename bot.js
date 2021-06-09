@@ -227,9 +227,12 @@ async function writeChit(nick,_chit) {
     if(result && result.length>0) {
       for(x=0;x<result.length;x++) {
         let votes=await Database.countVotes(result[x].CID);
-        output+='<a class="chit_link" href="'+result[x].CID+'.html"><div class="single_reply">';
+        output+='<a class="chit_link" href="/u/';
+        output+=result[x].NICK.toLowerCase().replace('\\','~');
+        output+='/';
+        output+=result[x].CID+'.html"><div class="single_reply">';
         output+='<span class="single_reply_timestamp">'+timestampToDate(result[x].TIMESTAMP)+'</span>';
-        output+='<span class="single_reply_author">'+nick.toLowerCase()+'</span>';
+        output+='<span class="single_reply_author">'+result[x].NICK.toLowerCase()+'</span>';
         output+='<span class="single_reply_text">'+result[x].CHIT+'</span>';
         output+='<span class="single_reply_votes">'+votes+'</span>';
         output+='</div></a>';
