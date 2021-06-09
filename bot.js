@@ -75,7 +75,7 @@ async function parse(from,msg,isop) {
       break;
     case 'chit':
       msg.shift();
-      if(!await Database.userCanChit(from))
+      if(!await Database.userCanChit(from)  && from.toLowerCase()!==constants.BBS)
         IRC.notice_chan(from,"Sorry, you can only chit one chit per "+constants.CHIT_TIME_BETWEEN+" minutes",constants.IRC_CHAN);
       else if(msg.length<1)
         IRC.notice_chan(from,"Syntax error.  Try 'help'",constants.IRC_CHAN);
